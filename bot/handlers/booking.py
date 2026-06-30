@@ -205,7 +205,7 @@ async def do_book(cb: CallbackQuery, bot: Bot) -> None:
         await cb.answer("Afsus, bu vaqt band bo'lib qoldi. Boshqa vaqt tanlang.", show_alert=True)
         return
 
-    await bookings_repo.create_booking(
+    booking = await bookings_repo.create_booking(
         client_id=client["id"],
         service_id=service["id"],
         start_at=start,
@@ -220,10 +220,12 @@ async def do_book(cb: CallbackQuery, bot: Bot) -> None:
         "Akamiz tez orada tasdiqlaydi. Kutib qolamiz! 💈"
     )
     await cb.answer()
-    await _notify_admins(bot, client, service, start)
+    await _notify_admins(bot, booking["id"], client, service, start)
 
 
-async def _notify_admins(bot: Bot, client: dict, service: dict, start: datetime) -> None:
+async def _notify_admins(
+    bot: Bot, booking_id: int, client: dict, service: dict, start: datetime
+) -> None:
     config = load_config()
     uname = f"@{client['username']}" if client.get("username") else "—"
     text = (
@@ -234,9 +236,13 @@ async def _notify_admins(bot: Bot, client: dict, service: dict, start: datetime)
         f"📅 {fmt_date(start.date())}\n"
         f"🕐 {fmt_time(start)}"
     )
+    kb = InlineKeyboardBuilder()
+    kb.button(text="✅ Tasdiqlash", callback_data=f"adm:ok:{booking_id}")
+    kb.button(text="❌ Bekor qilish", callback_data=f"adm:no:{booking_id}")
+    kb.adjust(2)
     for admin_id in config.admin_ids:
         try:
-            await bot.send_message(admin_id, text)
+            await bot.send_message(admin_id, text, reply_markup=kb.as_markup())
         except Exception:
             pass
 
@@ -263,9 +269,49 @@ async def my_bookings(message: Message) -> None:
 
     status_uz = {"pending": "⏳ kutilmoqda", "confirmed": "✅ tasdiqlangan"}
     lines = ["<b>Kelgusi navbatlaringiz:</b>\n"]
+    kb = InlineKeyboardBuilder()
     for b in items:
         svc = b.get("services") or {}
         start = _parse_dt(b["start_at"])
         st = status_uz.get(b["status"], b["status"])
         lines.append(f"✂️ {svc.get('name', '—')} — {fmt_date(start.date())}, {fmt_time(start)} ({st})")
-    await message.answer("\n".join(lines))
+        kb.button(text=f"❌ {fmt_time(start)} ni bekor qilish", callback_data=f"cl:no:{b['id']}")
+    kb.adjust(1)
+    await message.answer("\n".join(lines), reply_markup=kb.as_markup())
+
+
+@router.callback_query(F.data.startswith("cl:no:"))
+async def client_cancel(cb: CallbackQuery, bot: Bot) -> None:
+    booking_id = int(cb.data.split(":")[2])
+    booking = await bookings_repo.get_booking(booking_id)
+    client = await clients_repo.get_client_by_telegram_id(cb.from_user.id)
+    if not booking or not client or booking["client_id"] != client["id"]:
+        await cb.answer("Bron topilmadi", show_alert=True)
+        return
+    if booking["status"] not in ("pending", "confirmed"):
+        await cb.answer("Bu bron allaqachon yopilgan", show_alert=True)
+        return
+
+    await bookings_repo.update_status(booking_id, "cancelled")
+    svc = booking.get("services") or {}
+    start = _parse_dt(booking["start_at"])
+    await cb.message.edit_text(
+        f"❌ Navbat bekor qilindi: {svc.get('name', '—')} — "
+        f"{fmt_date(start.date())}, {fmt_time(start)}"
+    )
+    await cb.answer("Bekor qilindi")
+
+    # Adminga xabar
+    config = load_config()
+    uname = f"@{client['username']}" if client.get("username") else "—"
+    for admin_id in config.admin_ids:
+        try:
+            await bot.send_message(
+                admin_id,
+                "⚠️ <b>Mijoz bronni bekor qildi</b>\n\n"
+                f"👤 {client['full_name']} ({uname})\n"
+                f"✂️ {svc.get('name', '—')}\n"
+                f"📅 {fmt_date(start.date())}, 🕐 {fmt_time(start)}",
+            )
+        except Exception:
+            pass
