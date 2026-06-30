@@ -1,0 +1,15 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Muhit o'zgaruvchilari (maxfiy — hech qachon git'ga tushmasin!)
+.env
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
