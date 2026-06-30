@@ -2,6 +2,10 @@
 
 Ishga tushirish: uvicorn admin_api.main:app --reload --port 8000
 """
+import asyncio
+import logging
+import os
+from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -11,10 +15,29 @@ from pydantic import BaseModel
 from admin_api import notify
 from admin_api.auth import require_admin
 from bot.database import bookings_repo, clients_repo, services_repo, working_hours_repo
+from bot.runner import run_polling
 from bot.utils.tz import TASHKENT, fmt_date, fmt_time
 from bot.utils.tz import now as now_tk
 
-app = FastAPI(title="Tilla Barber Admin API")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Production'da (RUN_BOT=1) bot ham shu jarayonda polling qiladi."""
+    bot_task = None
+    if os.getenv("RUN_BOT") == "1":
+        bot_task = asyncio.create_task(run_polling())
+        logger.info("Bot fonda ishga tushdi (RUN_BOT=1)")
+    try:
+        yield
+    finally:
+        if bot_task:
+            bot_task.cancel()
+
+
+app = FastAPI(title="Tilla Barber Admin API", lifespan=lifespan)
 
 # Dev uchun barcha manbalardan ruxsat (auth header orqali himoyalangan)
 app.add_middleware(
