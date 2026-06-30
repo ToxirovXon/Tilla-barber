@@ -33,6 +33,6 @@ python -m bot
 - [x] Loyiha skeleti, /start
 - [x] Mijoz ro'yxatdan o'tishi (ism, tel, tug'ilgan kun) + Supabase
 - [x] Mijoz tomoni bron: xizmat → kun → vaqt → tasdiq → adminga xabar
-- [ ] Admin bronni tasdiqlash/bekor qilish
+- [x] Admin bronni tasdiqlash/bekor qilish (+ mijoz o'zi bekor qilishi)
 - [ ] Admin panel (Telegram Web App)
 - [ ] To'lov (Payme/Click)
