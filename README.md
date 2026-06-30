@@ -31,6 +31,6 @@ python -m bot
 
 ## Holat
 - [x] Loyiha skeleti, /start
-- [ ] Mijoz ro'yxatdan o'tishi (ism, tel, tug'ilgan kun)
+- [x] Mijoz ro'yxatdan o'tishi (ism, tel, tug'ilgan kun) + Supabase
 - [ ] Bron tizimi
 - [ ] Admin panel
