@@ -8,36 +8,73 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 
-from fastapi import Depends, FastAPI, HTTPException
+from aiogram.types import Update
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from admin_api import notify
 from admin_api.auth import require_admin
 from bot.database import bookings_repo, clients_repo, services_repo, working_hours_repo
-from bot.runner import run_polling
+from bot.runner import build, run_polling
 from bot.utils.tz import TASHKENT, fmt_date, fmt_time
 from bot.utils.tz import now as now_tk
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
 
+# Webhook xavfsizlik tokeni (Telegram har so'rovda shu sarlavhani yuboradi)
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "tilla-barber-hook-7a3f9c2e")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Production'da (RUN_BOT=1) bot ham shu jarayonda polling qiladi."""
-    bot_task = None
-    if os.getenv("RUN_BOT") == "1":
-        bot_task = asyncio.create_task(run_polling())
-        logger.info("Bot fonda ishga tushdi (RUN_BOT=1)")
-    try:
+    """Production (Railway): webhook rejimi. Lokal: RUN_BOT=1 bo'lsa polling."""
+    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    run_bot_local = os.getenv("RUN_BOT", "").strip() == "1"
+
+    if domain:
+        # --- Webhook rejimi (Railway) ---
+        bot, dp = build()
+        app.state.bot = bot
+        app.state.dp = dp
+        url = f"https://{domain}/webhook"
+        await bot.set_webhook(
+            url,
+            secret_token=WEBHOOK_SECRET,
+            drop_pending_updates=True,
+            allowed_updates=dp.resolve_used_update_types(),
+        )
+        logger.info(f"Webhook o'rnatildi: {url}")
+        try:
+            yield
+        finally:
+            await bot.delete_webhook()
+            await bot.session.close()
+
+    elif run_bot_local:
+        # --- Polling rejimi (lokal dev) ---
+        task = asyncio.create_task(run_polling())
+        logger.info("Bot polling (lokal)")
+        try:
+            yield
+        finally:
+            task.cancel()
+    else:
         yield
-    finally:
-        if bot_task:
-            bot_task.cancel()
 
 
 app = FastAPI(title="Tilla Barber Admin API", lifespan=lifespan)
+
+
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
+        raise HTTPException(status_code=403, detail="forbidden")
+    data = await request.json()
+    update = Update.model_validate(data, context={"bot": request.app.state.bot})
+    await request.app.state.dp.feed_update(request.app.state.bot, update)
+    return {"ok": True}
 
 # Dev uchun barcha manbalardan ruxsat (auth header orqali himoyalangan)
 app.add_middleware(
