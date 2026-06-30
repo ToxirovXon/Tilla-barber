@@ -1,8 +1,17 @@
-"""Admin (akam) tomoni: bronni tasdiqlash / bekor qilish."""
+"""Admin (akam) tomoni: panel tugmasi + bronni tasdiqlash / bekor qilish."""
+import os
 from datetime import datetime
 
 from aiogram import Bot, F, Router
-from aiogram.types import CallbackQuery
+from aiogram.filters import Command
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    MenuButtonWebApp,
+    Message,
+    WebAppInfo,
+)
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.config import load_config
 from bot.database import bookings_repo
@@ -13,6 +22,35 @@ router = Router()
 
 def _is_admin(user_id: int) -> bool:
     return user_id in load_config().admin_ids
+
+
+@router.message(Command("admin"))
+async def admin_panel(message: Message, bot: Bot) -> None:
+    if not _is_admin(message.from_user.id):
+        return  # admin bo'lmaganlarga jim
+
+    url = os.getenv("WEBAPP_URL")
+    if not url:
+        await message.answer("⚠️ Admin panel manzili (WEBAPP_URL) sozlanmagan.")
+        return
+
+    # Yozuv yonida doimiy "Panel" tugmasini o'rnatamiz
+    try:
+        await bot.set_chat_menu_button(
+            chat_id=message.chat.id,
+            menu_button=MenuButtonWebApp(text="🖥 Panel", web_app=WebAppInfo(url=url)),
+        )
+    except Exception:
+        pass
+
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🖥 Admin panelni ochish", web_app=WebAppInfo(url=url))
+    await message.answer(
+        "<b>Tilla Barber — boshqaruv paneli</b>\n\n"
+        "Quyidagi tugma orqali oching. Bundan keyin yozuv yonidagi «🖥 Panel» "
+        "tugmasi ham doim shu yerda turadi.",
+        reply_markup=kb.as_markup(),
+    )
 
 
 @router.callback_query(F.data.startswith("adm:"))
