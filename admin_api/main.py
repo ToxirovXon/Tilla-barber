@@ -39,18 +39,24 @@ async def lifespan(app: FastAPI):
         app.state.bot = bot
         app.state.dp = dp
         url = f"https://{domain}/webhook"
-        await bot.set_webhook(
-            url,
-            secret_token=WEBHOOK_SECRET,
-            drop_pending_updates=True,
-            allowed_updates=dp.resolve_used_update_types(),
-        )
-        logger.info(f"Webhook o'rnatildi: {url}")
+        try:
+            await bot.set_webhook(
+                url,
+                secret_token=WEBHOOK_SECRET,
+                drop_pending_updates=True,
+                allowed_updates=dp.resolve_used_update_types(),
+            )
+            logger.info(f"Webhook o'rnatildi: {url}")
+        except Exception:
+            # Xato bo'lsa ham API ko'tarilsin (loglardan ko'ramiz)
+            logger.exception("Webhook o'rnatishda xato")
         try:
             yield
         finally:
-            await bot.delete_webhook()
-            await bot.session.close()
+            try:
+                await bot.session.close()
+            except Exception:
+                pass
 
     elif run_bot_local:
         # --- Polling rejimi (lokal dev) ---
