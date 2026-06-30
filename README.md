@@ -34,5 +34,7 @@ python -m bot
 - [x] Mijoz ro'yxatdan o'tishi (ism, tel, tug'ilgan kun) + Supabase
 - [x] Mijoz tomoni bron: xizmat → kun → vaqt → tasdiq → adminga xabar
 - [x] Admin bronni tasdiqlash/bekor qilish (+ mijoz o'zi bekor qilishi)
-- [ ] Admin panel (Telegram Web App)
+- [x] Admin panel backend (FastAPI: auth, bronlar, xizmat CRUD, mijoz, statistika)
+- [x] Admin panel frontend (React/Vite TWA) — lokal sinaldi
+- [ ] Telegram'ga ulash + deploy (24/7)
 - [ ] To'lov (Payme/Click)
