@@ -32,5 +32,7 @@ python -m bot
 ## Holat
 - [x] Loyiha skeleti, /start
 - [x] Mijoz ro'yxatdan o'tishi (ism, tel, tug'ilgan kun) + Supabase
-- [ ] Bron tizimi
-- [ ] Admin panel
+- [x] Mijoz tomoni bron: xizmat → kun → vaqt → tasdiq → adminga xabar
+- [ ] Admin bronni tasdiqlash/bekor qilish
+- [ ] Admin panel (Telegram Web App)
+- [ ] To'lov (Payme/Click)
