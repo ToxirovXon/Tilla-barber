@@ -1,0 +1,90 @@
+:root {
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #1a1a1a);
+  --hint: var(--tg-theme-hint-color, #8a8a8e);
+  --card: var(--tg-theme-secondary-bg-color, #f3f3f6);
+  --accent: var(--tg-theme-button-color, #2b7cff);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --border: rgba(128, 128, 128, 0.2);
+  --green: #2ecc71;
+  --red: #e74c3c;
+  --amber: #f0a020;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.app { max-width: 600px; margin: 0 auto; padding: 12px 12px 80px; }
+
+h1 { font-size: 20px; margin: 8px 0 4px; }
+.sub { color: var(--hint); font-size: 13px; margin-bottom: 16px; }
+
+/* Kartalar */
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.muted { color: var(--hint); font-size: 13px; }
+.title { font-weight: 600; }
+
+/* Badge */
+.badge { font-size: 12px; padding: 3px 9px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.badge.pending { background: rgba(240,160,32,.15); color: var(--amber); }
+.badge.confirmed { background: rgba(46,204,113,.15); color: var(--green); }
+.badge.cancelled { background: rgba(231,76,60,.15); color: var(--red); }
+.badge.completed { background: rgba(43,124,255,.15); color: var(--accent); }
+.badge.no_show { background: rgba(231,76,60,.15); color: var(--red); }
+
+/* Tugmalar */
+button { font-family: inherit; font-size: 14px; cursor: pointer; border: none; border-radius: 10px; padding: 9px 14px; font-weight: 600; }
+.btn-primary { background: var(--accent); color: var(--accent-text); width: 100%; padding: 12px; }
+.btn-green { background: var(--green); color: #fff; }
+.btn-red { background: var(--red); color: #fff; }
+.btn-ghost { background: transparent; color: var(--accent); padding: 8px; }
+.btn-sm { padding: 7px 12px; font-size: 13px; }
+.actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* Inputlar */
+input {
+  font-family: inherit; font-size: 15px; width: 100%;
+  padding: 11px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
+label { display: block; font-size: 13px; color: var(--hint); margin: 10px 0 4px; }
+
+/* Pastki tab navigatsiya */
+.tabs {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; background: var(--bg);
+  border-top: 1px solid var(--border);
+  max-width: 600px; margin: 0 auto;
+}
+.tab {
+  flex: 1; text-align: center; padding: 10px 0 14px;
+  background: none; color: var(--hint); border-radius: 0; font-weight: 500;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px;
+}
+.tab.active { color: var(--accent); }
+.tab .ico { font-size: 20px; }
+
+/* Statistika */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat { background: var(--card); border-radius: 14px; padding: 16px; text-align: center; }
+.stat .num { font-size: 26px; font-weight: 700; }
+.stat .lbl { color: var(--hint); font-size: 12px; margin-top: 4px; }
+
+.center { text-align: center; color: var(--hint); padding: 40px 0; }
+.day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.day-nav .d { font-weight: 600; }
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+.modal-actions button { flex: 1; }
