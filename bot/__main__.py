@@ -7,7 +7,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from bot.config import load_config
-from bot.handlers import start
+from bot.handlers import registration
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +23,7 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher()
-    dp.include_router(start.router)
+    dp.include_router(registration.router)
 
     logger.info("Tilla Barber bot ishga tushdi ✅")
     await bot.delete_webhook(drop_pending_updates=True)
