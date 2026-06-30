@@ -31,6 +31,7 @@ async def create_client_record(
     full_name: str,
     phone: str,
     birthday: str | None,
+    username: str | None = None,
 ) -> dict:
     """Yangi mijozni saqlash. birthday — 'YYYY-MM-DD' yoki None."""
     def _query():
@@ -40,6 +41,7 @@ async def create_client_record(
             .insert(
                 {
                     "telegram_id": telegram_id,
+                    "username": username,
                     "full_name": full_name,
                     "phone": phone,
                     "birthday": birthday,
@@ -50,3 +52,13 @@ async def create_client_record(
         return res.data[0]
 
     return await asyncio.to_thread(_query)
+
+
+async def update_username(telegram_id: int, username: str | None) -> None:
+    """Mijozning Telegram username'ini yangilash (o'zgargan bo'lsa)."""
+    def _query():
+        get_supabase().table(TABLE).update({"username": username}).eq(
+            "telegram_id", telegram_id
+        ).execute()
+
+    await asyncio.to_thread(_query)

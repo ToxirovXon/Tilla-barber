@@ -6,7 +6,12 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove
 
-from bot.database.clients_repo import create_client_record, get_client_by_telegram_id
+from bot.database.clients_repo import (
+    create_client_record,
+    get_client_by_telegram_id,
+    update_username,
+)
+from bot.keyboards.menu import main_menu_kb
 from bot.keyboards.reply import phone_request_kb, skip_kb
 from bot.states.registration import Registration
 
@@ -21,11 +26,14 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
     existing = await get_client_by_telegram_id(message.from_user.id)
 
     if existing:
+        # Username o'zgargan/yangi bo'lsa — jimgina yangilab qo'yamiz
+        if existing.get("username") != message.from_user.username:
+            await update_username(message.from_user.id, message.from_user.username)
         await message.answer(
             f"Assalomu alaykum, <b>{existing['full_name']}</b>! 💈\n\n"
             "<b>Tilla Barber</b>'ga xush kelibsiz.\n"
-            "Tez orada bu yerdan navbatga yozilishingiz mumkin bo'ladi.",
-            reply_markup=ReplyKeyboardRemove(),
+            "Quyidagi menyudan foydalaning 👇",
+            reply_markup=main_menu_kb(),
         )
         return
 
@@ -101,6 +109,7 @@ async def reg_birthday(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     await create_client_record(
         telegram_id=message.from_user.id,
+        username=message.from_user.username,
         full_name=data["full_name"],
         phone=data["phone"],
         birthday=birthday,
@@ -109,6 +118,6 @@ async def reg_birthday(message: Message, state: FSMContext) -> None:
     await message.answer(
         f"Rahmat, <b>{data['full_name']}</b>! ✅\n"
         "Siz ro'yxatdan o'tdingiz.\n\n"
-        "Tez orada bu yerdan navbatga yozilishingiz mumkin bo'ladi. 💈",
-        reply_markup=ReplyKeyboardRemove(),
+        "Endi navbatga yozilishingiz mumkin 👇",
+        reply_markup=main_menu_kb(),
     )
