@@ -54,6 +54,22 @@ async def create_client_record(
     return await asyncio.to_thread(_query)
 
 
+async def list_clients(limit: int = 500) -> list[dict]:
+    """Barcha mijozlar (admin CRM uchun), yangidan eskiga."""
+    def _query():
+        res = (
+            get_supabase()
+            .table(TABLE)
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return res.data
+
+    return await asyncio.to_thread(_query)
+
+
 async def update_username(telegram_id: int, username: str | None) -> None:
     """Mijozning Telegram username'ini yangilash (o'zgargan bo'lsa)."""
     def _query():

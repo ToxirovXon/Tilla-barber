@@ -57,6 +57,23 @@ async def create_booking(
     return await asyncio.to_thread(_query)
 
 
+async def list_bookings(start: datetime, end: datetime) -> list[dict]:
+    """Berilgan oraliqdagi barcha bronlar (admin uchun, hamma status)."""
+    def _query():
+        res = (
+            get_supabase()
+            .table(TABLE)
+            .select("*, clients(full_name, username, phone), services(name)")
+            .gte("start_at", start.isoformat())
+            .lt("start_at", end.isoformat())
+            .order("start_at")
+            .execute()
+        )
+        return res.data
+
+    return await asyncio.to_thread(_query)
+
+
 async def get_booking(booking_id: int) -> dict | None:
     """Bitta bron — mijoz va xizmat ma'lumotlari bilan birga."""
     def _query():
