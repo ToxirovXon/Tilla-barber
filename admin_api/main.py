@@ -9,13 +9,19 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 
 from aiogram.types import Update
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from admin_api import notify
 from admin_api.auth import require_admin
-from bot.database import bookings_repo, clients_repo, services_repo, working_hours_repo
+from bot.database import (
+    bookings_repo,
+    clients_repo,
+    services_repo,
+    settings_repo,
+    working_hours_repo,
+)
 from bot.runner import build, run_polling
 from bot.utils.tz import TASHKENT, fmt_date, fmt_time
 from bot.utils.tz import now as now_tk
@@ -56,6 +62,8 @@ async def lifespan(app: FastAPI):
             aps = AsyncIOScheduler(timezone=TASHKENT)
             aps.add_job(sched.send_reminders, "interval", minutes=5, id="reminders")
             aps.add_job(sched.send_daily_report, "cron", hour=20, minute=0, id="daily_report")
+            aps.add_job(sched.run_retention, "cron", hour=10, minute=0, id="retention")
+            aps.add_job(sched.run_birthday, "cron", hour=9, minute=0, id="birthday")
             aps.start()
             app.state.scheduler = aps
             logger.info("Scheduler ishga tushdi (eslatma 5 daq, hisobot 20:00)")
@@ -386,6 +394,19 @@ async def broadcast(body: BroadcastIn, admin: dict = Depends(require_admin)):
 @app.get("/api/working-hours")
 async def get_working_hours(admin: dict = Depends(require_admin)):
     return {"items": await working_hours_repo.list_all()}
+
+
+@app.get("/api/settings")
+async def get_settings(admin: dict = Depends(require_admin)):
+    return await settings_repo.get_all()
+
+
+@app.put("/api/settings")
+async def put_settings(body: dict = Body(...), admin: dict = Depends(require_admin)):
+    # faqat ma'lum kalitlarni saqlaymiz
+    allowed = {k: v for k, v in body.items() if k in ("reminder", "retention", "birthday")}
+    await settings_repo.save(allowed)
+    return {"ok": True}
 
 
 @app.put("/api/working-hours")

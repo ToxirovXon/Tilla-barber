@@ -44,6 +44,8 @@ export const api = {
   workingHours: () => req('/api/working-hours'),
   saveWorkingHours: (days) => req('/api/working-hours', { method: 'PUT', body: JSON.stringify({ days }) }),
   broadcast: (message) => req('/api/broadcast', { method: 'POST', body: JSON.stringify({ message }) }),
+  settings: () => req('/api/settings'),
+  saveSettings: (s) => req('/api/settings', { method: 'PUT', body: JSON.stringify(s) }),
 }
 
 // Mijozning Telegram chatini ochish (username bo'yicha)

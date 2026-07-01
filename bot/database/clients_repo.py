@@ -109,6 +109,20 @@ async def list_clients(limit: int = 500) -> list[dict]:
     return await asyncio.to_thread(_query)
 
 
+async def set_retention_sent(client_id: int, dt) -> None:
+    def _query():
+        get_supabase().table(TABLE).update({"last_retention_sent": dt.isoformat()}).eq("id", client_id).execute()
+
+    return await asyncio.to_thread(_query)
+
+
+async def set_birthday_greeted(client_id: int, day) -> None:
+    def _query():
+        get_supabase().table(TABLE).update({"last_birthday_greeted": day.isoformat()}).eq("id", client_id).execute()
+
+    return await asyncio.to_thread(_query)
+
+
 async def update_username(telegram_id: int, username: str | None) -> None:
     """Mijozning Telegram username'ini yangilash (o'zgargan bo'lsa)."""
     def _query():

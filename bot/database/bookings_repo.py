@@ -100,6 +100,27 @@ async def update_status(booking_id: int, status: str, cancelled_by: str | None =
     return await asyncio.to_thread(_query)
 
 
+async def last_completed_per_client() -> dict:
+    """Har mijozning oxirgi 'keldi' (completed) sanasi: {client_id: datetime}."""
+    def _query():
+        res = (
+            get_supabase()
+            .table(TABLE)
+            .select("client_id, start_at")
+            .eq("status", "completed")
+            .order("start_at", desc=True)
+            .execute()
+        )
+        out: dict = {}
+        for r in res.data:
+            cid = r["client_id"]
+            if cid not in out:
+                out[cid] = datetime.fromisoformat(r["start_at"])
+        return out
+
+    return await asyncio.to_thread(_query)
+
+
 async def get_reminder_due(now: datetime, window_end: datetime) -> list[dict]:
     """Eslatma yuboriladigan bronlar: tasdiqlangan, eslatma yuborilmagan,
     boshlanishi [now, window_end] oralig'ida."""
