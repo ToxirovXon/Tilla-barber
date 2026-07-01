@@ -29,17 +29,19 @@ WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "tilla-barber-hook-7a3f9c2e")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Production (Railway): webhook rejimi. Lokal: RUN_BOT=1 bo'lsa polling."""
-    domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-    run_bot_local = os.getenv("RUN_BOT", "").strip() == "1"
+    """Startup HECH QACHON qulamaydi — xatoni app.state ga yozib, API ni tirik saqlaydi."""
+    app.state.bot = None
+    app.state.dp = None
+    app.state.startup_error = None
+    try:
+        domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+        run_bot_local = os.getenv("RUN_BOT", "").strip() == "1"
 
-    if domain:
-        # --- Webhook rejimi (Railway) ---
-        bot, dp = build()
-        app.state.bot = bot
-        app.state.dp = dp
-        url = f"https://{domain}/webhook"
-        try:
+        if domain:
+            bot, dp = build()
+            app.state.bot = bot
+            app.state.dp = dp
+            url = f"https://{domain}/webhook"
             await bot.set_webhook(
                 url,
                 secret_token=WEBHOOK_SECRET,
@@ -47,27 +49,13 @@ async def lifespan(app: FastAPI):
                 allowed_updates=dp.resolve_used_update_types(),
             )
             logger.info(f"Webhook o'rnatildi: {url}")
-        except Exception:
-            # Xato bo'lsa ham API ko'tarilsin (loglardan ko'ramiz)
-            logger.exception("Webhook o'rnatishda xato")
-        try:
-            yield
-        finally:
-            try:
-                await bot.session.close()
-            except Exception:
-                pass
-
-    elif run_bot_local:
-        # --- Polling rejimi (lokal dev) ---
-        task = asyncio.create_task(run_polling())
-        logger.info("Bot polling (lokal)")
-        try:
-            yield
-        finally:
-            task.cancel()
-    else:
-        yield
+        elif run_bot_local:
+            asyncio.create_task(run_polling())
+            logger.info("Bot polling (lokal)")
+    except Exception as e:
+        app.state.startup_error = repr(e)
+        logger.exception("Startup xato")
+    yield
 
 
 app = FastAPI(title="Tilla Barber Admin API", lifespan=lifespan)
@@ -77,10 +65,44 @@ app = FastAPI(title="Tilla Barber Admin API", lifespan=lifespan)
 async def telegram_webhook(request: Request):
     if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
         raise HTTPException(status_code=403, detail="forbidden")
+    if request.app.state.bot is None:
+        raise HTTPException(status_code=503, detail="bot tayyor emas")
     data = await request.json()
     update = Update.model_validate(data, context={"bot": request.app.state.bot})
     await request.app.state.dp.feed_update(request.app.state.bot, update)
     return {"ok": True}
+
+
+@app.get("/api/debug")
+async def debug():
+    """Nima buzilganini masofadan ko'rish (maxfiy qiymatlar YO'Q, faqat bor/yo'q)."""
+    def present(k: str) -> bool:
+        return bool(os.getenv(k))
+
+    cfg_loads, cfg_err = True, None
+    try:
+        from bot.config import load_config
+        load_config()
+    except Exception as e:
+        cfg_loads, cfg_err = False, repr(e)
+
+    return {
+        "env_present": {
+            "BOT_TOKEN": present("BOT_TOKEN"),
+            "SUPABASE_URL": present("SUPABASE_URL"),
+            "SUPABASE_KEY": present("SUPABASE_KEY"),
+        },
+        "env_values": {
+            "ADMIN_IDS": os.getenv("ADMIN_IDS"),
+            "RUN_BOT": os.getenv("RUN_BOT"),
+            "WEBAPP_URL": os.getenv("WEBAPP_URL"),
+            "RAILWAY_PUBLIC_DOMAIN": os.getenv("RAILWAY_PUBLIC_DOMAIN"),
+        },
+        "config_loads": cfg_loads,
+        "config_error": cfg_err,
+        "startup_error": getattr(app.state, "startup_error", None),
+        "bot_ready": app.state.bot is not None,
+    }
 
 # Dev uchun barcha manbalardan ruxsat (auth header orqali himoyalangan)
 app.add_middleware(
