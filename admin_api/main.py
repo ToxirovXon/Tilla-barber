@@ -130,6 +130,28 @@ class ServiceUpdate(BaseModel):
     is_active: bool | None = None
 
 
+class ClientIn(BaseModel):
+    full_name: str
+    phone: str
+
+
+class BookingCreate(BaseModel):
+    service_id: int
+    start_at: str                      # ISO datetime (Toshkent)
+    client_id: int | None = None       # mavjud mijoz
+    new_client: ClientIn | None = None # yoki yangi mijoz
+
+
+class BookingUpdate(BaseModel):
+    service_id: int | None = None
+    start_at: str | None = None
+    status: str | None = None
+
+
+class CancelBody(BaseModel):
+    message: str | None = None         # admin yozgan maxsus matn
+
+
 # ---------- Health (auth talab qilmaydi) ----------
 
 @app.get("/api/health")
@@ -153,12 +175,73 @@ async def bookings_for_day(day: str | None = None, admin: dict = Depends(require
     return {"date": d.isoformat(), "items": rows}
 
 
-@app.get("/api/bookings/upcoming")
-async def bookings_upcoming(days: int = 7, admin: dict = Depends(require_admin)):
-    start = now_tk()
-    end = datetime.combine((start + timedelta(days=days)).date(), time(0, 0), tzinfo=TASHKENT)
-    rows = await bookings_repo.list_bookings(start, end)
+@app.get("/api/bookings/range")
+async def bookings_range(start: str, end: str, admin: dict = Depends(require_admin)):
+    """Kalendar uchun: [start, end) oralig'idagi barcha bronlar (YYYY-MM-DD)."""
+    s = datetime.combine(datetime.strptime(start, "%Y-%m-%d").date(), time(0, 0), tzinfo=TASHKENT)
+    e = datetime.combine(datetime.strptime(end, "%Y-%m-%d").date(), time(0, 0), tzinfo=TASHKENT)
+    rows = await bookings_repo.list_bookings(s, e)
     return {"items": rows}
+
+
+@app.post("/api/bookings")
+async def create_manual_booking(body: BookingCreate, admin: dict = Depends(require_admin)):
+    """Admin qo'lda bron qo'shadi. Yangi mijoz bo'lsa — bazaga qo'shiladi."""
+    service = await services_repo.get_service(body.service_id)
+    if not service:
+        raise HTTPException(status_code=404, detail="Xizmat topilmadi")
+
+    # Mijozni aniqlaymiz
+    if body.new_client:
+        client = await clients_repo.create_manual_client(
+            full_name=body.new_client.full_name, phone=body.new_client.phone
+        )
+    elif body.client_id:
+        client = await clients_repo.get_client_by_id(body.client_id)
+        if not client:
+            raise HTTPException(status_code=404, detail="Mijoz topilmadi")
+    else:
+        raise HTTPException(status_code=400, detail="Mijoz ko'rsatilmagan")
+
+    start = datetime.fromisoformat(body.start_at)
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=TASHKENT)
+    end = start + timedelta(minutes=service["duration"])
+
+    booking = await bookings_repo.create_booking(
+        client_id=client["id"], service_id=service["id"],
+        start_at=start, end_at=end, price=service["price"], source="manual",
+    )
+    # Admin qo'shgani uchun darrov tasdiqlangan
+    await bookings_repo.update_status(booking["id"], "confirmed")
+    return {"ok": True, "booking_id": booking["id"], "client": client}
+
+
+@app.patch("/api/bookings/{booking_id}")
+async def edit_booking(booking_id: int, body: BookingUpdate, admin: dict = Depends(require_admin)):
+    booking = await bookings_repo.get_booking(booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Bron topilmadi")
+
+    fields: dict = {}
+    if body.status is not None:
+        fields["status"] = body.status
+    if body.service_id is not None:
+        fields["service_id"] = body.service_id
+    if body.start_at is not None:
+        start = datetime.fromisoformat(body.start_at)
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=TASHKENT)
+        svc_id = body.service_id or booking["service_id"]
+        svc = await services_repo.get_service(svc_id)
+        dur = svc["duration"] if svc else 40
+        fields["start_at"] = start.isoformat()
+        fields["end_at"] = (start + timedelta(minutes=dur)).isoformat()
+
+    if not fields:
+        raise HTTPException(status_code=400, detail="O'zgartirish yo'q")
+    updated = await bookings_repo.update_booking(booking_id, fields)
+    return {"ok": True, "booking": updated}
 
 
 @app.post("/api/bookings/{booking_id}/confirm")
@@ -167,11 +250,14 @@ async def confirm_booking(booking_id: int, admin: dict = Depends(require_admin))
 
 
 @app.post("/api/bookings/{booking_id}/cancel")
-async def cancel_booking(booking_id: int, admin: dict = Depends(require_admin)):
-    return await _set_booking_status(booking_id, "cancelled")
+async def cancel_booking(
+    booking_id: int, body: CancelBody | None = None, admin: dict = Depends(require_admin)
+):
+    custom = body.message if body else None
+    return await _set_booking_status(booking_id, "cancelled", custom_message=custom)
 
 
-async def _set_booking_status(booking_id: int, status: str):
+async def _set_booking_status(booking_id: int, status: str, custom_message: str | None = None):
     booking = await bookings_repo.get_booking(booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Bron topilmadi")
@@ -183,7 +269,9 @@ async def _set_booking_status(booking_id: int, status: str):
     start = datetime.fromisoformat(booking["start_at"])
     tg_id = client.get("telegram_id")
     if tg_id:
-        if status == "confirmed":
+        if custom_message:
+            await notify.send_message(tg_id, custom_message)
+        elif status == "confirmed":
             await notify.send_message(
                 tg_id,
                 "✅ <b>Navbatingiz tasdiqlandi!</b>\n\n"
@@ -235,8 +323,15 @@ async def delete_service(service_id: int, admin: dict = Depends(require_admin)):
 # ---------- Mijozlar ----------
 
 @app.get("/api/clients")
-async def list_clients(admin: dict = Depends(require_admin)):
+async def list_clients(q: str | None = None, admin: dict = Depends(require_admin)):
+    if q:
+        return {"items": await clients_repo.search_clients(q)}
     return {"items": await clients_repo.list_clients()}
+
+
+@app.post("/api/clients")
+async def create_client(body: ClientIn, admin: dict = Depends(require_admin)):
+    return await clients_repo.create_manual_client(full_name=body.full_name, phone=body.phone)
 
 
 # ---------- Statistika ----------

@@ -97,6 +97,15 @@ async def update_status(booking_id: int, status: str) -> None:
     return await asyncio.to_thread(_query)
 
 
+async def update_booking(booking_id: int, fields: dict) -> dict | None:
+    """Bronni tahrirlash (vaqt, xizmat, status)."""
+    def _query():
+        res = get_supabase().table(TABLE).update(fields).eq("id", booking_id).execute()
+        return res.data[0] if res.data else None
+
+    return await asyncio.to_thread(_query)
+
+
 async def get_client_upcoming(client_id: int, from_dt: datetime) -> list[dict]:
     """Mijozning kelgusi bronlari (xizmat nomi bilan birga)."""
     def _query():
