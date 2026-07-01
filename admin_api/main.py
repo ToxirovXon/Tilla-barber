@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 
 from aiogram.types import Update
-from fastapi import Body, Depends, FastAPI, HTTPException, Request
+from fastapi import Body, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -376,14 +376,29 @@ async def create_client(body: ClientIn, admin: dict = Depends(require_admin)):
 # ---------- Broadcast (hamma mijozga xabar) ----------
 
 @app.post("/api/broadcast")
-async def broadcast(body: BroadcastIn, admin: dict = Depends(require_admin)):
-    if not body.message.strip():
-        raise HTTPException(status_code=400, detail="Xabar bo'sh")
+async def broadcast(
+    message: str = Form(""),
+    image: UploadFile | None = File(None),
+    admin: dict = Depends(require_admin),
+):
+    content = await image.read() if image is not None else None
+    if not message.strip() and not content:
+        raise HTTPException(status_code=400, detail="Xabar yoki rasm kerak")
+
     clients = await clients_repo.list_clients()
     targets = [c for c in clients if c.get("telegram_id")]
     sent = 0
+    file_id = None  # rasm bir marta yuklanadi, keyin qayta ishlatiladi
     for c in targets:
-        if await notify.send_message(c["telegram_id"], body.message):
+        tg = c["telegram_id"]
+        if content:
+            if file_id is None:
+                file_id = await notify.send_photo_file(tg, image.filename, content, message)
+                if file_id:
+                    sent += 1
+            elif await notify.send_photo_id(tg, file_id, message):
+                sent += 1
+        elif await notify.send_message(tg, message):
             sent += 1
         await asyncio.sleep(0.05)  # Telegram limitidan oshmaslik uchun
     return {"ok": True, "sent": sent, "total": len(targets)}
