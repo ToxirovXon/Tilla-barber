@@ -5,7 +5,7 @@ import CancelBooking from '../components/CancelBooking'
 
 const WD = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sha', 'Ya']
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr']
-const STATUS = { pending: 'kutilmoqda', confirmed: 'tasdiqlangan', cancelled: 'bekor', completed: 'bajarildi', no_show: 'kelmadi' }
+const STATUS = { pending: 'kutilmoqda', confirmed: 'tasdiqlangan', cancelled: 'bekor', completed: 'keldi ✅', no_show: 'kelmadi' }
 
 function statusLabel(b) {
   if (b.status === 'cancelled') {
@@ -61,6 +61,7 @@ export default function Bookings({ reloadKey }) {
 
   const prev = () => (month === 0 ? (setYear(year - 1), setMonth(11)) : setMonth(month - 1))
   const next = () => (month === 11 ? (setYear(year + 1), setMonth(0)) : setMonth(month + 1))
+  const mark = (id, status) => api.editBooking(id, { status }).then(load)
 
   return (
     <>
@@ -113,8 +114,14 @@ export default function Bookings({ reloadKey }) {
                 {b.status === 'pending' && (
                   <button className="btn-green btn-sm" onClick={() => api.confirm(b.id).then(load)}>✅ Tasdiq</button>
                 )}
-                <button className="btn-ghost btn-sm" onClick={() => setEdit(b)}>✏️ Tahrir</button>
-                <button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => setCancel(b)}>❌ Bekor</button>
+                {b.status === 'confirmed' && (
+                  <>
+                    <button className="btn-green btn-sm" onClick={() => mark(b.id, 'completed')}>✅ Keldi</button>
+                    <button className="btn-ghost btn-sm" onClick={() => mark(b.id, 'no_show')}>🚫 Kelmadi</button>
+                  </>
+                )}
+                <button className="btn-ghost btn-sm" onClick={() => setEdit(b)}>✏️</button>
+                <button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => setCancel(b)}>❌</button>
               </div>
             )}
           </div>

@@ -385,7 +385,8 @@ async def stats(days: int = 30, admin: dict = Depends(require_admin)):
     revenue = 0
     for b in rows:
         by_status[b["status"]] = by_status.get(b["status"], 0) + 1
-        if b["status"] in ("confirmed", "completed"):
+        # Daromad FAQAT mijoz kelib xizmatdan foydalangan (completed) bronlardan
+        if b["status"] == "completed":
             revenue += b.get("price") or 0
 
     return {
@@ -393,5 +394,7 @@ async def stats(days: int = 30, admin: dict = Depends(require_admin)):
         "total_bookings": total,
         "by_status": by_status,
         "revenue": revenue,
+        "completed": by_status.get("completed", 0),
+        "no_show": by_status.get("no_show", 0),
         "clients_total": len(await clients_repo.list_clients()),
     }

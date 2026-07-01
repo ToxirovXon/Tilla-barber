@@ -37,8 +37,8 @@ export default function Stats() {
               <div className="lbl">Jami bron</div>
             </div>
             <div className="stat">
-              <div className="num">{data.by_status?.confirmed || 0}</div>
-              <div className="lbl">Tasdiqlangan</div>
+              <div className="num">{data.completed || 0}</div>
+              <div className="lbl">Keldi (bajarildi)</div>
             </div>
             <div className="stat">
               <div className="num">{data.clients_total}</div>
@@ -46,7 +46,7 @@ export default function Stats() {
             </div>
           </div>
           <div className="muted" style={{ marginTop: 12, fontSize: 12 }}>
-            * Tasdiqlangan va bajarilgan bronlar bo'yicha
+            * Daromad faqat mijoz kelib xizmatdan foydalangan («Keldi») bronlardan hisoblanadi
           </div>
         </>
       )}
