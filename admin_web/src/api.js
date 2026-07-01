@@ -27,14 +27,29 @@ async function req(path, options = {}) {
 export const api = {
   me: () => req('/api/me'),
   bookingsForDay: (day) => req('/api/bookings' + (day ? `?day=${day}` : '')),
+  bookingsRange: (start, end) => req(`/api/bookings/range?start=${start}&end=${end}`),
+  createBooking: (b) => req('/api/bookings', { method: 'POST', body: JSON.stringify(b) }),
+  editBooking: (id, b) => req(`/api/bookings/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
   confirm: (id) => req(`/api/bookings/${id}/confirm`, { method: 'POST' }),
-  cancel: (id) => req(`/api/bookings/${id}/cancel`, { method: 'POST' }),
+  cancel: (id, message) =>
+    req(`/api/bookings/${id}/cancel`, { method: 'POST', body: JSON.stringify({ message: message || null }) }),
   services: () => req('/api/services'),
   createService: (b) => req('/api/services', { method: 'POST', body: JSON.stringify(b) }),
   updateService: (id, b) => req(`/api/services/${id}`, { method: 'PATCH', body: JSON.stringify(b) }),
   deleteService: (id) => req(`/api/services/${id}`, { method: 'DELETE' }),
   clients: () => req('/api/clients'),
+  searchClients: (q) => req(`/api/clients?q=${encodeURIComponent(q)}`),
+  createClient: (b) => req('/api/clients', { method: 'POST', body: JSON.stringify(b) }),
   stats: (days = 30) => req(`/api/stats?days=${days}`),
+}
+
+// Mijozning Telegram chatini ochish (username bo'yicha)
+export function openTelegram(username) {
+  if (!username) return
+  const url = `https://t.me/${username}`
+  const tg = window.Telegram?.WebApp
+  if (tg?.openTelegramLink) tg.openTelegramLink(url)
+  else window.open(url, '_blank')
 }
 
 // --- Vaqt/sana formatlash (Toshkent) ---

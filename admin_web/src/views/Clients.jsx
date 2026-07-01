@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api'
+import { api, openTelegram } from '../api'
 
 export default function Clients() {
   const [items, setItems] = useState(null)
@@ -27,7 +27,7 @@ export default function Clients() {
         <div className="card" key={c.id}>
           <div className="row">
             <span className="title">{c.full_name}</span>
-            {c.username && <span className="muted">@{c.username}</span>}
+            {c.username && <a className="tg-link" onClick={() => openTelegram(c.username)}>@{c.username} ↗</a>}
           </div>
           <div className="muted" style={{ marginTop: 4 }}>
             📞 {c.phone}{c.birthday ? ` · 🎂 ${c.birthday}` : ''}

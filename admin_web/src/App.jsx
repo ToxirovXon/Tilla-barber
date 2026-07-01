@@ -4,18 +4,21 @@ import Bookings from './views/Bookings.jsx'
 import Services from './views/Services.jsx'
 import Clients from './views/Clients.jsx'
 import Stats from './views/Stats.jsx'
+import AddBooking from './components/AddBooking.jsx'
 
 const TABS = [
-  { key: 'bookings', label: 'Bronlar', ico: '📅', view: Bookings },
-  { key: 'services', label: 'Xizmatlar', ico: '✂️', view: Services },
-  { key: 'clients', label: 'Mijozlar', ico: '👥', view: Clients },
-  { key: 'stats', label: 'Statistika', ico: '📊', view: Stats },
+  { key: 'bookings', label: 'Bronlar', ico: '📅' },
+  { key: 'services', label: 'Xizmatlar', ico: '✂️' },
+  { key: 'clients', label: 'Mijozlar', ico: '👥' },
+  { key: 'stats', label: 'Statistika', ico: '📊' },
 ]
 
 export default function App() {
   const [tab, setTab] = useState('bookings')
-  const [auth, setAuth] = useState('loading') // loading | ok | error
+  const [auth, setAuth] = useState('loading')
   const [err, setErr] = useState('')
+  const [addOpen, setAddOpen] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     api.me()
@@ -27,21 +30,30 @@ export default function App() {
   if (auth === 'error') {
     return (
       <div className="app">
-        <div className="center">
-          🔒 Kirish rad etildi<br />
-          <span className="muted">{err}</span>
-        </div>
+        <div className="center">🔒 Kirish rad etildi<br /><span className="muted">{err}</span></div>
       </div>
     )
   }
 
-  const Active = TABS.find((t) => t.key === tab).view
-
   return (
     <>
       <div className="app">
-        <Active />
+        {tab === 'bookings' && <Bookings reloadKey={reloadKey} />}
+        {tab === 'services' && <Services />}
+        {tab === 'clients' && <Clients />}
+        {tab === 'stats' && <Stats />}
       </div>
+
+      {/* Har sahifada ko'rinadigan "Bron qo'shish" tugmasi */}
+      <button className="fab" onClick={() => setAddOpen(true)} aria-label="Bron qo'shish">+</button>
+
+      {addOpen && (
+        <AddBooking
+          onClose={() => setAddOpen(false)}
+          onCreated={() => { setReloadKey((k) => k + 1); setTab('bookings') }}
+        />
+      )}
+
       <nav className="tabs">
         {TABS.map((t) => (
           <button

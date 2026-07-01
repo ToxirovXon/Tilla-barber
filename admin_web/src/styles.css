@@ -84,7 +84,67 @@ label { display: block; font-size: 13px; color: var(--hint); margin: 10px 0 4px;
 .stat .lbl { color: var(--hint); font-size: 12px; margin-top: 4px; }
 
 .center { text-align: center; color: var(--hint); padding: 40px 0; }
-.day-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.day-nav .d { font-weight: 600; }
-.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
 .modal-actions button { flex: 1; }
+
+/* Inputlar (select, textarea) */
+select, textarea {
+  font-family: inherit; font-size: 15px; width: 100%;
+  padding: 11px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
+textarea { resize: vertical; }
+.two-col { display: flex; gap: 10px; }
+.two-col > div { flex: 1; }
+.err { color: var(--red); font-size: 13px; margin-top: 10px; }
+.tg-link { color: var(--accent); cursor: pointer; }
+
+/* Kalendar */
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-title { font-weight: 600; font-size: 16px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-wd { text-align: center; color: var(--hint); font-size: 11px; padding: 4px 0; }
+.cal-cell {
+  position: relative; aspect-ratio: 1; padding: 0; border-radius: 10px;
+  background: var(--card); color: var(--text); font-weight: 500; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.cal-cell.today { outline: 2px solid var(--accent); }
+.cal-cell.sel { background: var(--accent); color: var(--accent-text); }
+.cal-dot {
+  position: absolute; top: 4px; right: 5px;
+  min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px;
+  background: var(--green); color: #fff; font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.cal-cell.sel .cal-dot { background: #fff; color: var(--accent); }
+.day-title { font-weight: 600; margin: 18px 0 10px; }
+
+/* "Bron qo'shish" suzuvchi tugma (FAB) */
+.fab {
+  position: fixed; right: 16px; bottom: 76px; z-index: 40;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-text);
+  font-size: 30px; line-height: 1; padding: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  max-width: 600px;
+}
+
+/* Pastdan chiqadigan modal (bottom sheet) */
+.sheet-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet {
+  background: var(--bg); width: 100%; max-width: 600px;
+  border-radius: 18px 18px 0 0; padding: 8px 16px 24px;
+  max-height: 90vh; overflow-y: auto;
+}
+.sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 6px auto 12px; }
+.sheet h2 { font-size: 18px; margin: 4px 0 12px; }
+
+/* Segment (Mavjud / Yangi mijoz) */
+.seg { display: flex; background: var(--card); border-radius: 10px; padding: 3px; margin-bottom: 12px; }
+.seg button { flex: 1; background: transparent; color: var(--hint); padding: 8px; border-radius: 8px; }
+.seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
