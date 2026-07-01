@@ -36,5 +36,6 @@ python -m bot
 - [x] Admin bronni tasdiqlash/bekor qilish (+ mijoz o'zi bekor qilishi)
 - [x] Admin panel backend (FastAPI: auth, bronlar, xizmat CRUD, mijoz, statistika)
 - [x] Admin panel frontend (React/Vite TWA) — lokal sinaldi
-- [ ] Telegram'ga ulash + deploy (24/7)
+- [x] Deploy: Railway (bot+API, webhook) + Vercel (panel) — 24/7 onlayn
 - [ ] To'lov (Payme/Click)
+- [ ] Eslatma, kunlik hisobot, shop
