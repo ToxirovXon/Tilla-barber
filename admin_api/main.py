@@ -49,6 +49,16 @@ async def lifespan(app: FastAPI):
                 allowed_updates=dp.resolve_used_update_types(),
             )
             logger.info(f"Webhook o'rnatildi: {url}")
+
+            # Scheduler: eslatma (har 5 daq) + kunlik hisobot (20:00)
+            from apscheduler.schedulers.asyncio import AsyncIOScheduler
+            from bot import scheduler as sched
+            aps = AsyncIOScheduler(timezone=TASHKENT)
+            aps.add_job(sched.send_reminders, "interval", minutes=5, id="reminders")
+            aps.add_job(sched.send_daily_report, "cron", hour=20, minute=0, id="daily_report")
+            aps.start()
+            app.state.scheduler = aps
+            logger.info("Scheduler ishga tushdi (eslatma 5 daq, hisobot 20:00)")
         elif run_bot_local:
             asyncio.create_task(run_polling())
             logger.info("Bot polling (lokal)")
@@ -163,6 +173,10 @@ class WorkingDay(BaseModel):
 
 class WorkingHoursIn(BaseModel):
     days: list[WorkingDay]
+
+
+class BroadcastIn(BaseModel):
+    message: str
 
 
 # ---------- Health (auth talab qilmaydi) ----------
@@ -349,6 +363,22 @@ async def list_clients(q: str | None = None, admin: dict = Depends(require_admin
 @app.post("/api/clients")
 async def create_client(body: ClientIn, admin: dict = Depends(require_admin)):
     return await clients_repo.create_manual_client(full_name=body.full_name, phone=body.phone)
+
+
+# ---------- Broadcast (hamma mijozga xabar) ----------
+
+@app.post("/api/broadcast")
+async def broadcast(body: BroadcastIn, admin: dict = Depends(require_admin)):
+    if not body.message.strip():
+        raise HTTPException(status_code=400, detail="Xabar bo'sh")
+    clients = await clients_repo.list_clients()
+    targets = [c for c in clients if c.get("telegram_id")]
+    sent = 0
+    for c in targets:
+        if await notify.send_message(c["telegram_id"], body.message):
+            sent += 1
+        await asyncio.sleep(0.05)  # Telegram limitidan oshmaslik uchun
+    return {"ok": True, "sent": sent, "total": len(targets)}
 
 
 # ---------- Ish vaqti ----------

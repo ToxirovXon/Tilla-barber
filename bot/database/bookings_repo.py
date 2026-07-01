@@ -100,6 +100,32 @@ async def update_status(booking_id: int, status: str, cancelled_by: str | None =
     return await asyncio.to_thread(_query)
 
 
+async def get_reminder_due(now: datetime, window_end: datetime) -> list[dict]:
+    """Eslatma yuboriladigan bronlar: tasdiqlangan, eslatma yuborilmagan,
+    boshlanishi [now, window_end] oralig'ida."""
+    def _query():
+        res = (
+            get_supabase()
+            .table(TABLE)
+            .select("*, clients(telegram_id, full_name), services(name)")
+            .eq("status", "confirmed")
+            .eq("reminder_sent", False)
+            .gt("start_at", now.isoformat())
+            .lte("start_at", window_end.isoformat())
+            .execute()
+        )
+        return res.data
+
+    return await asyncio.to_thread(_query)
+
+
+async def mark_reminder_sent(booking_id: int) -> None:
+    def _query():
+        get_supabase().table(TABLE).update({"reminder_sent": True}).eq("id", booking_id).execute()
+
+    return await asyncio.to_thread(_query)
+
+
 async def update_booking(booking_id: int, fields: dict) -> dict | None:
     """Bronni tahrirlash (vaqt, xizmat, status)."""
     def _query():

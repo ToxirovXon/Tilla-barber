@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api, openTelegram } from '../api'
+import Broadcast from '../components/Broadcast'
 
 export default function Clients() {
   const [items, setItems] = useState(null)
   const [q, setQ] = useState('')
+  const [bcast, setBcast] = useState(false)
 
   useEffect(() => {
     api.clients().then((r) => setItems(r.items)).catch(() => setItems([]))
@@ -18,7 +20,9 @@ export default function Clients() {
   return (
     <>
       <h1>Mijozlar {items && <span className="muted">({items.length})</span>}</h1>
+      <button className="btn-primary" style={{ marginBottom: 12 }} onClick={() => setBcast(true)}>📢 Hammaga xabar yuborish</button>
       <input placeholder="Qidirish…" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 12 }} />
+      {bcast && <Broadcast onClose={() => setBcast(false)} />}
 
       {items === null && <div className="center">Yuklanmoqda…</div>}
       {filtered?.length === 0 && <div className="center">Mijoz topilmadi</div>}
