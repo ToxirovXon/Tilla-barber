@@ -4,12 +4,14 @@ import Bookings from './views/Bookings.jsx'
 import Services from './views/Services.jsx'
 import Clients from './views/Clients.jsx'
 import Stats from './views/Stats.jsx'
+import WorkingHours from './views/WorkingHours.jsx'
 import AddBooking from './components/AddBooking.jsx'
 
 const TABS = [
   { key: 'bookings', label: 'Bronlar', ico: '📅' },
   { key: 'services', label: 'Xizmatlar', ico: '✂️' },
   { key: 'clients', label: 'Mijozlar', ico: '👥' },
+  { key: 'hours', label: 'Ish vaqti', ico: '🕐' },
   { key: 'stats', label: 'Statistika', ico: '📊' },
 ]
 
@@ -41,6 +43,7 @@ export default function App() {
         {tab === 'bookings' && <Bookings reloadKey={reloadKey} />}
         {tab === 'services' && <Services />}
         {tab === 'clients' && <Clients />}
+        {tab === 'hours' && <WorkingHours />}
         {tab === 'stats' && <Stats />}
       </div>
 

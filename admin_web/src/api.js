@@ -41,6 +41,8 @@ export const api = {
   searchClients: (q) => req(`/api/clients?q=${encodeURIComponent(q)}`),
   createClient: (b) => req('/api/clients', { method: 'POST', body: JSON.stringify(b) }),
   stats: (days = 30) => req(`/api/stats?days=${days}`),
+  workingHours: () => req('/api/working-hours'),
+  saveWorkingHours: (days) => req('/api/working-hours', { method: 'PUT', body: JSON.stringify({ days }) }),
 }
 
 // Mijozning Telegram chatini ochish (username bo'yicha)

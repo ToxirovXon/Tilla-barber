@@ -7,6 +7,14 @@ const WD = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sha', 'Ya']
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr']
 const STATUS = { pending: 'kutilmoqda', confirmed: 'tasdiqlangan', cancelled: 'bekor', completed: 'bajarildi', no_show: 'kelmadi' }
 
+function statusLabel(b) {
+  if (b.status === 'cancelled') {
+    const who = b.cancelled_by === 'client' ? 'mijoz' : b.cancelled_by === 'admin' ? 'admin' : ''
+    return who ? `bekor · ${who}` : 'bekor'
+  }
+  return STATUS[b.status] || b.status
+}
+
 const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 const todayIso = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Tashkent' })
 const tashDay = (dt) => new Date(dt).toLocaleDateString('en-CA', { timeZone: 'Asia/Tashkent' })
@@ -93,20 +101,22 @@ export default function Bookings({ reloadKey }) {
           <div className="card" key={b.id}>
             <div className="row">
               <span className="title">{fmtTime(b.start_at)} · {s.name || '—'}</span>
-              <span className={'badge ' + b.status}>{STATUS[b.status] || b.status}</span>
+              <span className={'badge ' + b.status}>{statusLabel(b)}</span>
             </div>
             <div className="muted" style={{ marginTop: 4 }}>
               {c.full_name || '—'}{c.phone ? ' · ' + c.phone : ''}
               {c.username && <> · <a className="tg-link" onClick={() => openTelegram(c.username)}>@{c.username}</a></>}
               {b.source === 'manual' ? ' · qo\'lda' : ''}
             </div>
-            <div className="actions">
-              {b.status === 'pending' && (
-                <button className="btn-green btn-sm" onClick={() => api.confirm(b.id).then(load)}>✅ Tasdiq</button>
-              )}
-              <button className="btn-ghost btn-sm" onClick={() => setEdit(b)}>✏️ Tahrir</button>
-              <button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => setCancel(b)}>❌ Bekor</button>
-            </div>
+            {(b.status === 'pending' || b.status === 'confirmed') && (
+              <div className="actions">
+                {b.status === 'pending' && (
+                  <button className="btn-green btn-sm" onClick={() => api.confirm(b.id).then(load)}>✅ Tasdiq</button>
+                )}
+                <button className="btn-ghost btn-sm" onClick={() => setEdit(b)}>✏️ Tahrir</button>
+                <button className="btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => setCancel(b)}>❌ Bekor</button>
+              </div>
+            )}
           </div>
         )
       })}

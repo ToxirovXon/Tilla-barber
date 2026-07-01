@@ -86,7 +86,7 @@ async def admin_action(cb: CallbackQuery, bot: Bot) -> None:
             )
 
     elif action == "no":
-        await bookings_repo.update_status(int(bid), "cancelled")
+        await bookings_repo.update_status(int(bid), "cancelled", cancelled_by="admin")
         await cb.message.edit_text(cb.message.html_text + "\n\n❌ <b>BEKOR QILINDI</b>")
         await cb.answer("Bekor qilindi")
         if client.get("telegram_id"):

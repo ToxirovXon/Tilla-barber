@@ -128,6 +128,8 @@ async def choose_slot(cb: CallbackQuery) -> None:
 
     open_t = _parse_time(wh["open_time"])
     close_t = _parse_time(wh["close_time"])
+    break_start = _parse_time(wh["break_start"]) if wh.get("break_start") else None
+    break_end = _parse_time(wh["break_end"]) if wh.get("break_end") else None
     day_start = datetime.combine(day, time(0, 0), tzinfo=TASHKENT)
     day_end = day_start + timedelta(days=1)
 
@@ -135,7 +137,10 @@ async def choose_slot(cb: CallbackQuery) -> None:
     busy = [(_parse_dt(b["start_at"]), _parse_dt(b["end_at"])) for b in rows]
     now = now_tk() if day == now_tk().date() else None
 
-    slots = generate_slots(day, open_t, close_t, service["duration"], busy, now=now)
+    slots = generate_slots(
+        day, open_t, close_t, service["duration"], busy, now=now,
+        break_start=break_start, break_end=break_end,
+    )
     if not slots:
         await cb.answer("Bu kunda bo'sh vaqt qolmadi", show_alert=True)
         return
@@ -292,7 +297,7 @@ async def client_cancel(cb: CallbackQuery, bot: Bot) -> None:
         await cb.answer("Bu bron allaqachon yopilgan", show_alert=True)
         return
 
-    await bookings_repo.update_status(booking_id, "cancelled")
+    await bookings_repo.update_status(booking_id, "cancelled", cancelled_by="client")
     svc = booking.get("services") or {}
     start = _parse_dt(booking["start_at"])
     await cb.message.edit_text(

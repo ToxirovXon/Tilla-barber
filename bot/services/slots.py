@@ -17,15 +17,25 @@ def generate_slots(
     duration_min: int,
     busy: list[tuple[datetime, datetime]],
     now: datetime | None = None,
+    break_start: time | None = None,
+    break_end: time | None = None,
 ) -> list[datetime]:
     """Berilgan kun uchun bo'sh slot boshlanish vaqtlari ro'yxati.
 
-    day         — qaysi kun
-    open/close  — ish vaqti boshi/oxiri
-    duration    — tanlangan xizmat davomiyligi (daqiqa)
-    busy        — band intervallar [(start, end), ...]
-    now         — joriy vaqt (o'tib ketgan slotlarni o'tkazib yuborish uchun)
+    day          — qaysi kun
+    open/close   — ish vaqti boshi/oxiri
+    duration     — tanlangan xizmat davomiyligi (daqiqa)
+    busy         — band intervallar [(start, end), ...]
+    now          — joriy vaqt (o'tib ketgan slotlarni o'tkazib yuborish uchun)
+    break_*      — tushlik/tanaffus (shu oraliqqa bron tushmaydi)
     """
+    busy = list(busy)
+    if break_start and break_end:
+        busy.append((
+            datetime.combine(day, break_start, tzinfo=TASHKENT),
+            datetime.combine(day, break_end, tzinfo=TASHKENT),
+        ))
+
     slots: list[datetime] = []
     cursor = datetime.combine(day, open_time, tzinfo=TASHKENT)
     close_dt = datetime.combine(day, close_time, tzinfo=TASHKENT)

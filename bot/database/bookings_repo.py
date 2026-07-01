@@ -90,9 +90,12 @@ async def get_booking(booking_id: int) -> dict | None:
     return await asyncio.to_thread(_query)
 
 
-async def update_status(booking_id: int, status: str) -> None:
+async def update_status(booking_id: int, status: str, cancelled_by: str | None = None) -> None:
     def _query():
-        get_supabase().table(TABLE).update({"status": status}).eq("id", booking_id).execute()
+        fields: dict = {"status": status}
+        if cancelled_by is not None:
+            fields["cancelled_by"] = cancelled_by
+        get_supabase().table(TABLE).update(fields).eq("id", booking_id).execute()
 
     return await asyncio.to_thread(_query)
 

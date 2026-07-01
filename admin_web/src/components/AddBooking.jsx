@@ -20,7 +20,7 @@ export default function AddBooking({ onClose, onCreated }) {
   const [results, setResults] = useState([])
   const [picked, setPicked] = useState(null)
   const [newName, setNewName] = useState('')
-  const [newPhone, setNewPhone] = useState('')
+  const [newPhone, setNewPhone] = useState('+998 ')
 
   useEffect(() => {
     api.services().then((r) => {

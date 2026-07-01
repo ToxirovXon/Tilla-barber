@@ -152,6 +152,19 @@ class CancelBody(BaseModel):
     message: str | None = None         # admin yozgan maxsus matn
 
 
+class WorkingDay(BaseModel):
+    weekday: int                       # 0=Dushanba ... 6=Yakshanba
+    is_open: bool
+    open_time: str | None = None       # "09:00"
+    close_time: str | None = None
+    break_start: str | None = None     # tushlik boshi (ixtiyoriy)
+    break_end: str | None = None
+
+
+class WorkingHoursIn(BaseModel):
+    days: list[WorkingDay]
+
+
 # ---------- Health (auth talab qilmaydi) ----------
 
 @app.get("/api/health")
@@ -254,15 +267,19 @@ async def cancel_booking(
     booking_id: int, body: CancelBody | None = None, admin: dict = Depends(require_admin)
 ):
     custom = body.message if body else None
-    return await _set_booking_status(booking_id, "cancelled", custom_message=custom)
+    return await _set_booking_status(
+        booking_id, "cancelled", custom_message=custom, cancelled_by="admin"
+    )
 
 
-async def _set_booking_status(booking_id: int, status: str, custom_message: str | None = None):
+async def _set_booking_status(
+    booking_id: int, status: str, custom_message: str | None = None, cancelled_by: str | None = None
+):
     booking = await bookings_repo.get_booking(booking_id)
     if not booking:
         raise HTTPException(status_code=404, detail="Bron topilmadi")
 
-    await bookings_repo.update_status(booking_id, status)
+    await bookings_repo.update_status(booking_id, status, cancelled_by=cancelled_by)
 
     client = booking.get("clients") or {}
     service = booking.get("services") or {}
@@ -332,6 +349,27 @@ async def list_clients(q: str | None = None, admin: dict = Depends(require_admin
 @app.post("/api/clients")
 async def create_client(body: ClientIn, admin: dict = Depends(require_admin)):
     return await clients_repo.create_manual_client(full_name=body.full_name, phone=body.phone)
+
+
+# ---------- Ish vaqti ----------
+
+@app.get("/api/working-hours")
+async def get_working_hours(admin: dict = Depends(require_admin)):
+    return {"items": await working_hours_repo.list_all()}
+
+
+@app.put("/api/working-hours")
+async def put_working_hours(body: WorkingHoursIn, admin: dict = Depends(require_admin)):
+    rows = []
+    for d in body.days:
+        row = d.model_dump()
+        # bo'sh vaqtlarni None qilamiz (yopiq kun uchun)
+        for k in ("open_time", "close_time", "break_start", "break_end"):
+            if not row.get(k):
+                row[k] = None
+        rows.append(row)
+    await working_hours_repo.upsert_days(rows)
+    return {"ok": True}
 
 
 # ---------- Statistika ----------
